@@ -1,17 +1,39 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { motion, useInView } from 'framer-motion'
 
-const PhotoPlaceholder = ({ accent, title }) => (
-  <div
-    className="w-full h-full flex flex-col items-center justify-center gap-3 rounded-sm"
+const PhotoPlaceholder = ({ accent, title, onClick, uploading }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={uploading}
+    className="w-full h-full flex flex-col items-center justify-center gap-3 rounded-sm border-2 border-dashed border-orange-300 transition-all hover:border-orange-400 hover:brightness-95 active:scale-95 disabled:cursor-wait"
     style={{ background: `${accent}40` }}
   >
-    <span className="text-5xl opacity-50">🌻</span>
-    <p className="font-sans text-xs text-ink-mid text-center px-4 leading-relaxed font-medium">
-      {title}
-    </p>
-    <p className="font-sans text-xs text-ink-soft italic">Agrega tu foto aquí</p>
-  </div>
+    {uploading ? (
+      <>
+        <motion.span
+          className="text-4xl"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+        >
+          🌻
+        </motion.span>
+        <p className="font-sans text-xs text-ink-mid text-center px-4">
+          Subiendo foto…
+        </p>
+      </>
+    ) : (
+      <>
+        <span className="text-4xl opacity-60">📷</span>
+        <p className="font-sans text-xs text-ink-mid text-center px-4 leading-relaxed font-medium">
+          {title}
+        </p>
+        <span className="font-sans text-xs text-orange-500 font-semibold underline underline-offset-2">
+          Toca para agregar tu foto
+        </span>
+      </>
+    )}
+  </button>
 )
 
 const TextContent = ({ memory, align }) => (
@@ -34,12 +56,27 @@ const TextContent = ({ memory, align }) => (
   </div>
 )
 
-export default function TimelineCard({ memory, index }) {
-  const ref    = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-80px 0px' })
-  const isLeft = index % 2 === 0
+export default function TimelineCard({ memory, index, onImageUpload }) {
+  const ref        = useRef(null)
+  const fileRef    = useRef(null)
+  const isInView   = useInView(ref, { once: true, margin: '-80px 0px' })
+  const isLeft     = index % 2 === 0
+  const [uploading, setUploading] = useState(false)
 
-  // Efecto spring en la foto al entrar en viewport
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file || !onImageUpload) return
+    setUploading(true)
+    try {
+      await onImageUpload(memory, file)
+    } catch (err) {
+      console.error('Error subiendo foto:', err.message)
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
   const photoVariant = {
     hidden: {
       opacity: 0,
@@ -88,9 +125,22 @@ export default function TimelineCard({ memory, index }) {
           className="w-full h-full object-cover"
         />
       ) : (
-        <PhotoPlaceholder accent={memory.accent} title={memory.title} />
+        <>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <PhotoPlaceholder
+            accent={memory.accent || '#fed7aa'}
+            title={memory.title}
+            onClick={() => fileRef.current?.click()}
+            uploading={uploading}
+          />
+        </>
       )}
-      {/* Caption del polaroid */}
       <p className="absolute bottom-2 left-0 right-0 text-center text-xs font-sans text-ink-soft tracking-wide">
         {memory.date}
       </p>
@@ -109,7 +159,6 @@ export default function TimelineCard({ memory, index }) {
 
   return (
     <div ref={ref} className="relative flex items-center justify-center w-full py-16 md:py-20">
-      {/* Dot naranja con glow en la línea central */}
       <motion.div
         className="timeline-dot top-1/2 -translate-y-1/2 z-20"
         initial={{ scale: 0, opacity: 0 }}
@@ -118,7 +167,6 @@ export default function TimelineCard({ memory, index }) {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center w-full max-w-5xl px-6 md:px-10 gap-8 md:gap-0">
-        {/* Columna izquierda */}
         <div
           className={`flex ${
             isLeft
@@ -129,10 +177,8 @@ export default function TimelineCard({ memory, index }) {
           {isLeft ? PhotoCard : TextBlock}
         </div>
 
-        {/* Espaciador central (la línea pasa por aquí) */}
         <div className="hidden md:block w-4" />
 
-        {/* Columna derecha */}
         <div
           className={`flex ${
             isLeft

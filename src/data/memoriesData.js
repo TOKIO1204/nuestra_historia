@@ -47,3 +47,4 @@ export const memories = [
     accent: '#b5d5c5',
   },
 ]
+

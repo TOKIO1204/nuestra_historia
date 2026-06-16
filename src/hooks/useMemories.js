@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { memories as staticMemories } from '../data/memoriesData'
 
+const normalize = (m) => ({ ...m, image: m.image_url || m.image || null })
+
 export function useMemories() {
   const [memories, setMemories] = useState([])
   const [loading,  setLoading]  = useState(true)
@@ -10,7 +12,6 @@ export function useMemories() {
   const fetchMemories = useCallback(async () => {
     setLoading(true)
     setError(null)
-
     try {
       const res = await fetch('/api/memories')
       if (!res.ok) {
@@ -18,16 +19,9 @@ export function useMemories() {
         throw new Error(`Error ${res.status}: ${text.substring(0, 50)}`)
       }
       const data = await res.json()
-      // Si la base de datos está vacía y devuelve [], mostramos también los estáticos, pero mejor los ordenamos.
-      // O los reemplazamos completamente, lo ideal es combinar o solo usar la DB si tiene datos.
-      if (data && data.length > 0) {
-          setMemories(data)
-      } else {
-          setMemories(staticMemories)
-      }
+      setMemories(data && data.length > 0 ? data.map(normalize) : staticMemories)
     } catch (err) {
       console.error('[useMemories] fetch error:', err.message)
-      // Fallback a los datos locales si falla la DB
       setMemories(staticMemories)
       setError(err.message)
     } finally {
@@ -37,26 +31,64 @@ export function useMemories() {
 
   useEffect(() => { fetchMemories() }, [fetchMemories])
 
-  // ── Add ──────────────────────────────────────────────────────────────
-  const addMemory = useCallback(async ({ file, date, title, description }) => {
-    // 1. Sube imagen a Vercel Blob
+  // ── Upload helper ────────────────────────────────────────────────────
+  const uploadFile = async (file) => {
     const ext = file.name.split('.').pop().toLowerCase()
     const filename = `foto-${Date.now()}.${ext}`
-
-    const uploadRes = await fetch(`/api/upload?filename=${filename}`, {
+    const res = await fetch(`/api/upload?filename=${filename}`, {
       method: 'POST',
       body: file,
     })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(`Subida fallida: ${err.error || res.statusText}`)
+    }
+    return res.json()
+  }
 
-    if (!uploadRes.ok) {
-      const errorData = await uploadRes.json().catch(() => ({}))
-      throw new Error(`Subida fallida: ${errorData.error || uploadRes.statusText}`)
+  // ── Update image of existing card ────────────────────────────────────
+  const updateImage = useCallback(async (memory, file) => {
+    const blob = await uploadFile(file)
+
+    if (memory.created_at) {
+      // Registro en DB → PATCH
+      const res = await fetch(`/api/memories?id=${memory.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: blob.url }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(`Error al guardar: ${err.error || res.statusText}`)
+      }
+    } else {
+      // Memoria estática → crear registro en DB con sus datos + imagen
+      const res = await fetch('/api/memories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: blob.url,
+          date: memory.date,
+          title: memory.title,
+          description: memory.description,
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(`Error al guardar: ${err.error || res.statusText}`)
+      }
     }
 
-    const blob = await uploadRes.json()
+    setMemories(prev => prev.map(m =>
+      m.id === memory.id ? { ...m, image: blob.url } : m
+    ))
+  }, [])
 
-    // 2. Guarda en la base de datos de Vercel Postgres
-    const dbRes = await fetch('/api/memories', {
+  // ── Add new memory ───────────────────────────────────────────────────
+  const addMemory = useCallback(async ({ file, date, title, description }) => {
+    const blob = await uploadFile(file)
+
+    const res = await fetch('/api/memories', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -69,17 +101,15 @@ export function useMemories() {
       }),
     })
 
-    if (!dbRes.ok) {
-      const errorData = await dbRes.json().catch(() => ({}))
-      throw new Error(`Base de datos: ${errorData.error || dbRes.statusText}`)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(`Base de datos: ${err.error || res.statusText}`)
     }
 
-    const newMemory = await dbRes.json()
-
-    // 3. Actualización optimista
+    const newMemory = normalize(await res.json())
     setMemories(prev => [...prev, newMemory])
     return newMemory
   }, [])
 
-  return { memories, loading, error, addMemory, refetch: fetchMemories }
+  return { memories, loading, error, addMemory, updateImage, refetch: fetchMemories }
 }

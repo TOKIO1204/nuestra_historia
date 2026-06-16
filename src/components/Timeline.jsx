@@ -82,7 +82,7 @@ function EmptyState() {
   )
 }
 
-export default function Timeline({ memories, loading, error }) {
+export default function Timeline({ memories, loading, error, onImageUpload }) {
   return (
     <section className="relative py-20">
       {/* Línea vertical naranja */}
@@ -95,7 +95,7 @@ export default function Timeline({ memories, loading, error }) {
       {!loading && !error && memories.length === 0 && <EmptyState />}
 
       {!loading && !error && memories.map((memory, index) => (
-        <TimelineCard key={memory.id} memory={memory} index={index} />
+        <TimelineCard key={memory.id} memory={memory} index={index} onImageUpload={onImageUpload} />
       ))}
 
       {/* Sunflower final de la línea */}

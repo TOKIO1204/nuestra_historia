@@ -42,5 +42,20 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── PATCH /api/memories?id=X → actualiza image_url de un recuerdo ─────
+  if (req.method === 'PATCH') {
+    try {
+      const { id } = req.query
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+      const { image_url } = body
+      const rows = await sql`
+        UPDATE memories SET image_url = ${image_url} WHERE id = ${id} RETURNING *
+      `
+      return res.status(200).json(rows[0] ?? {})
+    } catch (err) {
+      return res.status(500).json({ error: err.message })
+    }
+  }
+
   return res.status(405).json({ error: 'Método no permitido' })
 }

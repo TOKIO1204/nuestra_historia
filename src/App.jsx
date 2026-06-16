@@ -8,7 +8,7 @@ import AdminModal         from './components/AdminModal'
 import { useMemories }   from './hooks/useMemories'
 
 export default function App() {
-  const { memories, loading, error, addMemory } = useMemories()
+  const { memories, loading, error, addMemory, updateImage } = useMemories()
   const [adminOpen, setAdminOpen] = useState(false)
 
   return (
@@ -19,7 +19,7 @@ export default function App() {
       {/* Contenido principal — z-10 */}
       <div className="relative z-10">
         <Hero />
-        <Timeline memories={memories} loading={loading} error={error} />
+        <Timeline memories={memories} loading={loading} error={error} onImageUpload={updateImage} />
         <Footer onAdminOpen={() => setAdminOpen(true)} />
       </div>
 
