@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #fffbf0;
+    color: #1a0800;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background-color: #fdba74;
+    color: #1a0800;
+  }
+}
+
+@layer components {
+  /* Polaroid con sombra cálida y borde sutil naranja */
+  .polaroid {
+    @apply bg-white p-3 pb-10;
+    box-shadow:
+      0 8px 16px -2px rgba(26, 8, 0, 0.15),
+      0 3px 6px -1px rgba(26, 8, 0, 0.08),
+      0 0 0 1px rgba(234, 88, 12, 0.09);
+  }
+
+  /* Línea del timeline en degradado naranja */
+  .timeline-line {
+    @apply absolute left-1/2 top-0 bottom-0 w-0.5 -translate-x-1/2;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      #fb923c 10%,
+      #f97316 50%,
+      #fb923c 90%,
+      transparent
+    );
+  }
+
+  /* Dot con glow naranja pulsante */
+  .timeline-dot {
+    @apply absolute left-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-orange-500 border-2 border-cream-100;
+    box-shadow:
+      0 0 0 5px rgba(249, 115, 22, 0.2),
+      0 0 14px rgba(249, 115, 22, 0.4);
+    animation: glow-pulse 2.5s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  /* Texto degradado naranja → girasol */
+  .text-gradient-orange {
+    background: linear-gradient(135deg, #ea580c, #f97316, #fbbf24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+}
