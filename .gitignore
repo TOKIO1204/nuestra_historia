@@ -1,0 +1,30 @@
+# Dependencias — NUNCA se suben al repo
+node_modules/
+.pnp
+.pnp.js
+
+# Variables de entorno — contienen secretos
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
