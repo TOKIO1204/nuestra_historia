@@ -13,7 +13,10 @@ export function useMemories() {
 
     try {
       const res = await fetch('/api/memories')
-      if (!res.ok) throw new Error('Error al obtener los recuerdos')
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`Error ${res.status}: ${text.substring(0, 50)}`)
+      }
       const data = await res.json()
       // Si la base de datos está vacía y devuelve [], mostramos también los estáticos, pero mejor los ordenamos.
       // O los reemplazamos completamente, lo ideal es combinar o solo usar la DB si tiene datos.
