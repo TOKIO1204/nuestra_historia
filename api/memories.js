@@ -1,4 +1,5 @@
-import { sql } from '@vercel/postgres'
+import { neon } from '@neondatabase/serverless'
+const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL)
 
 export default async function handler(req, res) {
   // CORS para desarrollo local con vercel dev
@@ -11,7 +12,7 @@ export default async function handler(req, res) {
   // ── GET /api/memories → devuelve todos los recuerdos ────────────────
   if (req.method === 'GET') {
     try {
-      const { rows } = await sql`
+      const rows = await sql`
         SELECT * FROM memories ORDER BY created_at ASC
       `
       return res.status(200).json(rows)
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'image_url, title y description son requeridos' })
       }
 
-      const { rows } = await sql`
+      const rows = await sql`
         INSERT INTO memories (image_url, date, title, description, accent)
         VALUES (${image_url}, ${date ?? ''}, ${title}, ${description}, '#fed7aa')
         RETURNING *
